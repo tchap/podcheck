@@ -28,7 +28,7 @@ func runUserns(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	headers := []string{"NAMESPACE", "POD", "SCC ENABLED"}
+	headers := []string{"NAMESPACE", "POD", "ACTION"}
 	checker, err := NewPodChecker(podsFile, namespacesFile, headers)
 	if err != nil {
 		return err
@@ -69,9 +69,13 @@ func checkHostUsers(ns *corev1.Namespace, pod *corev1.Pod) (string, error) {
 		}
 	}
 
-	sccEnabled := ns.Labels["openshift.io/run-level"] == ""
+	var action string
+	switch {
+	case ns.Labels["openshift.io/run-level"] == "":
+		action = "use restricted-v3 scc"
+	}
 
 	// Pod doesn't have hostUsers: false, include it in output
 	// Use tab separator for tabwriter formatting
-	return fmt.Sprintf("%s\t%s\t%v", ns.Name, pod.Name, sccEnabled), nil
+	return fmt.Sprintf("%s\t%s\t%s", ns.Name, pod.Name, action), nil
 }
