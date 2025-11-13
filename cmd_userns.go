@@ -28,7 +28,7 @@ func runUserns(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	headers := []string{"NAMESPACE", "POD"}
+	headers := []string{"NAMESPACE", "POD", "SCC ENABLED"}
 	checker, err := NewPodChecker(podsFile, namespacesFile, headers)
 	if err != nil {
 		return err
@@ -45,7 +45,33 @@ func checkHostUsers(ns *corev1.Namespace, pod *corev1.Pod) (string, error) {
 		return "", nil
 	}
 
+	// Skip pods with host*: true.
+	if pod.Spec.HostNetwork || pod.Spec.HostPID || pod.Spec.HostIPC {
+		return "", nil
+	}
+
+	if pod.Spec.SecurityContext != nil {
+		// Skip pods running as root.
+		if pod.Spec.SecurityContext.RunAsUser != nil && *pod.Spec.SecurityContext.RunAsUser == 0 {
+			return "", nil
+		}
+		// Skip pods with privileged containers.
+		for _, c := range pod.Spec.Containers {
+			if c.SecurityContext == nil {
+				continue
+			}
+			if c.SecurityContext.RunAsUser != nil && *c.SecurityContext.RunAsUser == 0 {
+				return "", nil
+			}
+			if c.SecurityContext.Privileged != nil && *c.SecurityContext.Privileged {
+				return "", nil
+			}
+		}
+	}
+
+	sccEnabled := ns.Labels["openshift.io/run-level"] == ""
+
 	// Pod doesn't have hostUsers: false, include it in output
 	// Use tab separator for tabwriter formatting
-	return fmt.Sprintf("%s\t%s", ns.Name, pod.Name), nil
+	return fmt.Sprintf("%s\t%s\t%v", ns.Name, pod.Name, sccEnabled), nil
 }
