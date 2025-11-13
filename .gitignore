@@ -36,3 +36,6 @@ go.work.sum
 
 # Binary
 podcheck
+
+# Test files
+test-*.yaml

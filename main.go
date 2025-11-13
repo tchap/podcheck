@@ -22,6 +22,10 @@ func newRootCmd() *cobra.Command {
 It provides various subcommands to identify pods based on specific criteria.`,
 	}
 
+	// Add persistent flags that will be available to all subcommands
+	rootCmd.PersistentFlags().String("pods", "", "Path to YAML file containing PodList or List of pods")
+	rootCmd.PersistentFlags().String("namespaces", "", "Path to YAML file containing NamespaceList or List of namespaces")
+
 	// Add subcommands
 	rootCmd.AddCommand(newUsernsCmd())
 

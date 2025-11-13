@@ -18,7 +18,17 @@ func newUsernsCmd() *cobra.Command {
 }
 
 func runUserns(cmd *cobra.Command, args []string) error {
-	checker, err := NewPodChecker()
+	podsFile, err := cmd.Flags().GetString("pods")
+	if err != nil {
+		return err
+	}
+
+	namespacesFile, err := cmd.Flags().GetString("namespaces")
+	if err != nil {
+		return err
+	}
+
+	checker, err := NewPodChecker(podsFile, namespacesFile)
 	if err != nil {
 		return err
 	}
