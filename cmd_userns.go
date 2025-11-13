@@ -9,12 +9,16 @@ import (
 )
 
 func newUsernsCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "userns",
 		Short: "List pods that are eligible for using user namespaces",
 		Long:  "This command lists all pods that are eligible for using user namespaces.",
 		RunE:  runUserns,
 	}
+
+	cmd.Flags().Bool("skip-default", true, "Skip pods in the default namespace")
+
+	return cmd
 }
 
 func runUserns(cmd *cobra.Command, args []string) error {
@@ -33,6 +37,11 @@ func runUserns(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	skipDefault, err := cmd.Flags().GetBool("skip-default")
+	if err != nil {
+		return err
+	}
+
 	headers := []string{"NAMESPACE", "POD", "ACTION"}
 	checker, err := NewPodChecker(podsFile, namespacesFile, headers)
 	if err != nil {
@@ -40,16 +49,24 @@ func runUserns(cmd *cobra.Command, args []string) error {
 	}
 
 	ctx := context.Background()
-	return checker.RunCheck(ctx, checkHostUsers, verbose)
+	checkFn := func(ns *corev1.Namespace, pod *corev1.Pod, verbose bool) (string, error) {
+		return checkHostUsers(ns, pod, verbose, skipDefault)
+	}
+	return checker.RunCheck(ctx, checkFn, verbose)
 }
 
-func checkHostUsers(ns *corev1.Namespace, pod *corev1.Pod, verboseEnabled bool) (string, error) {
+func checkHostUsers(ns *corev1.Namespace, pod *corev1.Pod, verboseEnabled bool, skipDefault bool) (string, error) {
 	verbose := func(actionFormat string, args ...any) string {
 		if verboseEnabled {
 			action := fmt.Sprintf(actionFormat, args...)
 			return fmt.Sprintf("%s\t%s\t%s", ns.Name, pod.Name, action)
 		}
 		return ""
+	}
+
+	// Skip pods in default namespace if requested
+	if skipDefault && ns.Name == "default" {
+		return "", nil
 	}
 
 	// Skip pods having hostUsers: false.
