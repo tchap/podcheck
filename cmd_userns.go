@@ -28,7 +28,8 @@ func runUserns(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	checker, err := NewPodChecker(podsFile, namespacesFile)
+	headers := []string{"NAMESPACE", "POD"}
+	checker, err := NewPodChecker(podsFile, namespacesFile, headers)
 	if err != nil {
 		return err
 	}
@@ -45,5 +46,6 @@ func checkHostUsers(ns *corev1.Namespace, pod *corev1.Pod) (string, error) {
 	}
 
 	// Pod doesn't have hostUsers: false, include it in output
-	return fmt.Sprintf("%s/%s", ns.Name, pod.Name), nil
+	// Use tab separator for tabwriter formatting
+	return fmt.Sprintf("%s\t%s", ns.Name, pod.Name), nil
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
+	"text/tabwriter"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,16 +21,18 @@ type CheckFunc func(ns *corev1.Namespace, pod *corev1.Pod) (string, error)
 
 // PodChecker provides the core functionality for checking pods
 type PodChecker struct {
-	clientset     *kubernetes.Clientset
-	podsFile      string
+	clientset      *kubernetes.Clientset
+	podsFile       string
 	namespacesFile string
+	headers        []string
 }
 
 // NewPodChecker creates a new PodChecker using the current kubeconfig
-func NewPodChecker(podsFile, namespacesFile string) (*PodChecker, error) {
+func NewPodChecker(podsFile, namespacesFile string, headers []string) (*PodChecker, error) {
 	pc := &PodChecker{
 		podsFile:       podsFile,
 		namespacesFile: namespacesFile,
+		headers:        headers,
 	}
 
 	// Only initialize Kubernetes client if we're fetching from API
@@ -155,6 +159,15 @@ func (pc *PodChecker) RunCheck(ctx context.Context, checkFn CheckFunc) error {
 		nsMap[ns.Name] = ns
 	}
 
+	// Initialize tabwriter for formatted output
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	defer w.Flush()
+
+	// Print headers if provided
+	if len(pc.headers) > 0 {
+		fmt.Fprintln(w, strings.Join(pc.headers, "\t"))
+	}
+
 	// Iterate through pods and apply check function
 	for i := range pods.Items {
 		pod := &pods.Items[i]
@@ -170,7 +183,7 @@ func (pc *PodChecker) RunCheck(ctx context.Context, checkFn CheckFunc) error {
 			continue
 		}
 		if output != "" {
-			fmt.Println(output)
+			fmt.Fprintln(w, output)
 		}
 	}
 
