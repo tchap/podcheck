@@ -17,7 +17,7 @@ import (
 )
 
 // CheckFunc is a function that checks a pod and returns output if it matches criteria
-type CheckFunc func(ns *corev1.Namespace, pod *corev1.Pod) (string, error)
+type CheckFunc func(ns *corev1.Namespace, pod *corev1.Pod, verbose bool) (string, error)
 
 // PodChecker provides the core functionality for checking pods
 type PodChecker struct {
@@ -121,7 +121,7 @@ func loadNamespacesFromFile(filename string) (*corev1.NamespaceList, error) {
 }
 
 // RunCheck fetches all pods and namespaces, then applies the check function
-func (pc *PodChecker) RunCheck(ctx context.Context, checkFn CheckFunc) error {
+func (pc *PodChecker) RunCheck(ctx context.Context, checkFn CheckFunc, verbose bool) error {
 	var namespaces *corev1.NamespaceList
 	var pods *corev1.PodList
 	var err error
@@ -177,7 +177,7 @@ func (pc *PodChecker) RunCheck(ctx context.Context, checkFn CheckFunc) error {
 			continue
 		}
 
-		output, err := checkFn(ns, pod)
+		output, err := checkFn(ns, pod, verbose)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error checking pod %s/%s: %v\n", pod.Namespace, pod.Name, err)
 			continue
