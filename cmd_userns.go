@@ -11,8 +11,8 @@ import (
 func newUsernsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "userns",
-		Short: "List pods that do not have hostUsers: false in their spec",
-		Long:  "This command lists all pods that are missing the hostUsers: false setting in their security context.",
+		Short: "List pods that are eligible for using user namespaces",
+		Long:  "This command lists all pods that are eligible for using user namespaces.",
 		RunE:  runUserns,
 	}
 }
@@ -38,7 +38,7 @@ func runUserns(cmd *cobra.Command, args []string) error {
 }
 
 func checkHostUsers(ns *corev1.Namespace, pod *corev1.Pod) (string, error) {
-	// Check if hostUsers is explicitly set to false
+	// Skip pods having hostUsers: false.
 	if pod.Spec.HostUsers != nil && !*pod.Spec.HostUsers {
 		// Pod has hostUsers: false, skip it
 		return "", nil
