@@ -70,9 +70,10 @@ func checkHostUsers(ns *corev1.Namespace, pod *corev1.Pod) (string, error) {
 	}
 
 	var action string
-	switch {
-	case ns.Labels["openshift.io/run-level"] == "":
-		action = "use restricted-v3 scc"
+	if ns.Labels["openshift.io/run-level"] == "" {
+		action = "use restricted-v3"
+	} else {
+		action = "mimic restricted-v3"
 	}
 
 	// Pod doesn't have hostUsers: false, include it in output
